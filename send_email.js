@@ -1,34 +1,42 @@
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
+const handlebars = require("handlebars");
+const { promisify } = require("util");
+const fs = require("fs");
+require('dotenv').config()
 
-const path = require('path'); // Import 'path' module for template path handling
-require('dotenv').config();
+const readFile = promisify(fs.readFile);
 
-// Configuring transporter
 const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.GMAIL_USERNAME,
-        pass: process.env.GMAIL_PASS
-    }
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.GMAIL_USERNAME,
+    pass: process.env.GMAIL_PASS,
+  },
 });
 
+async function main(receivers, data, htmlFile) {
+  const html = await readFile(htmlFile, "utf8");
+  const template = handlebars.compile(html);
 
-const main = async (receivers) => {
-    const info = await transporter.sendMail({
-        from: '"Pukar Gautam 👻" <gautampukar01@gmail.com>',
-        to: receivers.toString(),
-        subject: "Hello ✔",
-        template: "example", // Use the name of your template here
-        context: {
-            name: "Pukar Gautam"
-        }
-    });
+  const htmlToSend = template(data);
 
-    console.log("Message sent: %s", info.messageId);
+  const info = await transporter.sendMail({
+    from: '"Pukar Gautam👻" <gautampukar01@gmail.com>', // sender address
+    to: receivers.toString(), // list of receivers
+    subject: "Hello ✔", // Subject line
+    html: htmlToSend,
+  });
+
+  console.log("Message sent: %s", info.messageId);
 }
 
-const receivers = ["gautampukar01@gmail.com", "gautampukar02@gmail.com"];
-
-main(receivers).catch(console.error);
+// Change here
+const data = {
+  name: "Pukar Gautam",
+  msg: "How are you??",
+};
+const htmlFile = "./email.html";
+const receivers = ["gautampukar01@gmail.com"];
+main(receivers, data, htmlFile).catch(console.error);
